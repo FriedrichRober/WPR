@@ -1,5 +1,5 @@
 #
-# WPR: Wreath Product Recognition implements constructive recognition algorithms for wreath products with almost simple base component
+# WPR: WreathProductRecognition provides constructive recognition algorithms for wreath products with almost simple base component
 #
 # This file is a script which compiles the package manual.
 #

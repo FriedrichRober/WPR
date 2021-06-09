@@ -1,5 +1,5 @@
 #
-# WPR: Wreath Product Recognition implements constructive recognition algorithms for wreath products with almost simple base component
+# WPR: WreathProductRecognition provides constructive recognition algorithms for wreath products with almost simple base component
 #
 # This file contains package meta data. For additional information on
 # the meaning and correct usage of these fields, please consult the
@@ -9,7 +9,7 @@
 SetPackageInfo( rec(
 
 PackageName := "WPR",
-Subtitle := "Wreath Product Recognition implements constructive recognition algorithms for wreath products with almost simple base component",
+Subtitle := "WreathProductRecognition provides constructive recognition algorithms for wreath products with almost simple base component",
 Version := "0.1",
 Date := "09/06/2021", # dd/mm/yyyy format
 License := "GPL-2.0-or-later",
@@ -60,7 +60,7 @@ PackageDoc := rec(
   HTMLStart := "doc/chap0.html",
   PDFFile   := "doc/manual.pdf",
   SixFile   := "doc/manual.six",
-  LongTitle := "Wreath Product Recognition implements constructive recognition algorithms for wreath products with almost simple base component",
+  LongTitle := "WreathProductRecognition provides constructive recognition algorithms for wreath products with almost simple base component",
 ),
 
 Dependencies := rec(
