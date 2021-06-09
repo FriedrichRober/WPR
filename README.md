@@ -1,3 +1,6 @@
+[![CI](https://github.com/FriedrichRober/WPR/workflows/CI/badge.svg)](https://github.com/FriedrichRober/WPR/actions?query=workflow%3ACI+branch%3Amaster)
+[![Code Coverage](https://codecov.io/gh/FriedrichRober/WPR/coverage.svg?branch=master&token=)](https://codecov.io/gh/FriedrichRober/WPR)
+
 # The GAP package WPR
 
 TODO: add a description of your package; perhaps also instructions how how to
