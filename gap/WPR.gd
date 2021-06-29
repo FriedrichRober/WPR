@@ -20,6 +20,7 @@ DeclareGlobalFunction( "WreathProductRecognition" );
 DeclareGlobalFunction( "WPR_SimpleSingleComponent" );
 DeclareGlobalFunction( "WPR_SimpleSingleComponentBaseStep" );
 DeclareGlobalFunction( "WPR_SimpleSingleComponentSuccessProb" );
+DeclareGlobalFunction( "WPR_StandardGensAlmostSimple" );
 DeclareGlobalFunction( "WPR_TopGroupDomain" );
 DeclareGlobalFunction( "WPR_TopComponentImage" );
 DeclareGlobalFunction( "WPR_Image" );
