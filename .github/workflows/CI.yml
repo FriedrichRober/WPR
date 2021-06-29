@@ -16,7 +16,6 @@ jobs:
       matrix:
         gap-branch:
           - master
-          - stable-4.11
         HPCGAP: ['no']
 
     steps:
