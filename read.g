@@ -4,3 +4,5 @@
 # Reading the implementation part of the package.
 #
 ReadPackage( "WPR", "gap/WPR.gi");
+
+ReadPackage( "WPR", "gap/Alt.gi");
