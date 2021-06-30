@@ -64,8 +64,8 @@ PackageDoc := rec(
 ),
 
 Dependencies := rec(
-  GAP := ">= 4.11",
-  NeededOtherPackages := [ ],
+  GAP := ">= 4.12",
+  NeededOtherPackages := [ ["recog", ">= 1.3.2"] ],
   SuggestedOtherPackages := [ ],
   ExternalConditions := [ ],
 ),

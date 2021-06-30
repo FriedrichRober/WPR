@@ -14,6 +14,22 @@
 #! This section will describe the example
 #! methods of WPR
 
-#! @Description
-#!   Insert documentation for your function here
-DeclareGlobalFunction( "WPR_Example" );
+DeclareGlobalFunction( "WreathProductRecognition" );
+DeclareGlobalFunction( "WPR_SimpleSingleComponent" );
+DeclareGlobalFunction( "WPR_SimpleSingleComponentHintsFirstPhase" );
+DeclareGlobalFunction( "WPR_SimpleSingleComponentHintsSecondPhase" );
+DeclareGlobalFunction( "WPR_SimpleSingleComponentBaseStep" );
+DeclareGlobalFunction( "WPR_SimpleSingleComponentSuccessProb" );
+DeclareGlobalFunction( "WPR_TopGroupDomain" );
+DeclareGlobalFunction( "WPR_TopComponentImage" );
+DeclareGlobalFunction( "WPR_Image" );
+DeclareGlobalFunction( "WPR_ImageAltGeneric" );
+DeclareGlobalFunction( "WPR_ImageAltFilter" );
+DeclareGlobalFunction( "WPR_StandardGensSingleComponent" );
+DeclareGlobalFunction( "WPR_StandardGensSingleComponentAlt" );
+DeclareGlobalFunction( "WPR_SLPforAlmostSimple" );
+DeclareGlobalFunction( "WPR_StandardGensTopGroup" );
+DeclareGlobalFunction( "WPR_Verification" );
+DeclareGlobalFunction( "WPR_RecogniseAlmostSimple" );
+DeclareGlobalFunction( "WPR_RecogniseAlt" );
+
