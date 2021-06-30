@@ -29,4 +29,6 @@ DeclareGlobalFunction( "WPR_ImageAltFilter" );
 DeclareGlobalFunction( "WPR_SLPforElement" );
 DeclareGlobalFunction( "WPR_StandardGensSingleComponent" );
 DeclareGlobalFunction( "WPR_StandardGensSingleComponentAlt" );
+DeclareGlobalFunction( "WPR_SLPforAlmostSimple" );
+DeclareGlobalFunction( "WPR_StandardGensTopGroup" );
 DeclareGlobalFunction( "WPR_Verification" );

@@ -5,15 +5,16 @@
 #
 
 InstallGlobalFunction( WreathProductRecognition,
-function(ri, G, SimpleGroupFamily...)
+function(ri, G, simpleGroupFamily...)
 	local N, L, m, eps, gensSingleComponent, S, riS, stdGensS, domainData, t, domain, proj, lambda, phi, imagesG, H, riH, SLPforElementFunc, gensC,
-		recogData, isoData, degree, lambdaImageFunc, lambdaSlpFunc, lambdaPreImageFunc, swapSLP, slpToLambdaGens, lambdaGens, T, AutT, W;
-	if Length(SimpleGroupFamily) = 0 then
+		recogData, isoData, degree, lambdaImageFunc, slpFuncForT, lambdaPreImageFunc, swapSLP, slpToLambdaGens, lambdaGens, T, AutT, W,
+		stdGensData, stdGensBaseComponent, groupDataBaseComponent, stdGensBase, slpFuncForK, stdGensTop;
+	if Length(simpleGroupFamily) = 0 then
 		# TODO: try to deduce simple group family or set this to unknown.
-		SimpleGroupFamily := "Alt";
-	elif Length(SimpleGroupFamily) = 1 then
-		SimpleGroupFamily := SimpleGroupFamily[1];
-	elif Length(SimpleGroupFamily) > 1 then
+		simpleGroupFamily := "Alt";
+	elif Length(simpleGroupFamily) = 1 then
+		simpleGroupFamily := simpleGroupFamily[1];
+	elif Length(simpleGroupFamily) > 1 then
 		ErrorNoReturn("too many arguments");
 	fi;
 	if IsPermGroup(G) then
@@ -35,11 +36,11 @@ function(ri, G, SimpleGroupFamily...)
 	# # # # # #
 	# Step 1  #
 	# # # # # #
-	# TODO: if G is primitive, we could compute a single component group as a socle factor directely.
+	# TODO: if G is primitive, we could compute a single component group as a socle factor directly.
 	# elms with memory in G
-	gensSingleComponent := WPR_SimpleSingleComponent(ri, SimpleGroupFamily, L, m, eps);
+	gensSingleComponent := WPR_SimpleSingleComponent(ri, simpleGroupFamily, L, m, eps);
 	if not IsList(gensSingleComponent) then
-		return gensSingleComponent;
+		return TemporaryFailure;
 	fi;
 	# # # # # #
 	# Step 2  #
@@ -51,7 +52,7 @@ function(ri, G, SimpleGroupFamily...)
 	# TODO: we need very special nice generators.
 	# elms with memory in G
 	# stdGensS := CalcNiceGens(riS, gensSingleComponent);
-	if SimpleGroupFamily = "Alt" then
+	if simpleGroupFamily = "Alt" then
 		riS := EmptyRecognitionInfoRecord(rec(), S, false);
 		recogData := RECOG.RecogniseSnAn(riS, eps, N);
 		if not IsRecord(recogData) then
@@ -67,13 +68,9 @@ function(ri, G, SimpleGroupFamily...)
 				isoData[2][1], isoData[2][2]);
 		end;
 		# slp from (1,2,3), (1,2)(3,..n)
-		lambdaSlpFunc := function(x)
-			return RECOG.SLPforAn(degree, x);
-		end;
+		slpFuncForT := WPR_SLPforAlmostSimple(rec(family := "Alt", degree := degree));
 		lambdaPreImageFunc := function(x)
-			local slp;
-			slp := RECOG.SLPforAn(degree, x);
-			return ResultOfStraightLineProgram(slp, Reversed(isoData[1]));
+			return ResultOfStraightLineProgram(slpFuncForT(x), Reversed(isoData[1]));
 		end;
 		swapSLP := StraightLineProgram([[[2, 1], [1, 1]]], 2);
 		slpToLambdaGens := CompositionOfStraightLinePrograms(swapSLP, recogData.slpToStdGens);
@@ -85,7 +82,7 @@ function(ri, G, SimpleGroupFamily...)
 		ErrorNoReturn("TODO");
 	fi;
 	# elms with memory in G
-	stdGensS := WPR_StandardGensAlmostSimple(SimpleGroupFamily, lambda, lambdaSlpFunc, lambdaGens);
+	stdGensS := WPR_StandardGensAlmostSimple(simpleGroupFamily, lambda, slpFuncForT, lambdaGens);
 	#
 	# # # # # # # # # # # # # # # #
 	# Top Group Action and Domain #
@@ -117,7 +114,7 @@ function(ri, G, SimpleGroupFamily...)
 	# # # # # #
 	W := WreathProduct(AutT, SymmetricGroup(m));
 	phi := function(g)
-		return WPR_Image(StripMemory(g), ri, SimpleGroupFamily, StripMemory(stdGensS), StripMemory(t), proj, lambda);
+		return WPR_Image(StripMemory(g), ri, simpleGroupFamily, StripMemory(stdGensS), StripMemory(t), proj, lambda);
 	end;
 	imagesG := List(ri!.gensHmem, g -> phi(g));
 	#
@@ -128,13 +125,19 @@ function(ri, G, SimpleGroupFamily...)
 	# # # # # #
 	# Step 8  #
 	# # # # # #
-	H := Group(List(ri!.gensHmem, g -> proj(g)));
+	# TODO: remove trivial generators in a better way?
+	H := Group(Filtered(List(ri!.gensHmem, g -> proj(g)), pi -> pi <> ()));
 	# TODO: give hints to recog node (H is transitive, etc.) and abort if assumptions do not hold.
 	riH := RecogniseGroup(H);
 	# # # # # #
 	# Step 9  #
 	# # # # # #
-	WPR_StandardGensSingleComponent(ri, eps, SimpleGroupFamily, lambda, stdGensS, lambdaSlpFunc, t, riH, imagesG, W);
+	# TODO: this is slow, too many slp's for Wmem to handle.
+	stdGensData := WPR_StandardGensSingleComponent(ri, eps, simpleGroupFamily, lambda, stdGensS, slpFuncForT, t, riH, imagesG, W);
+	stdGensBaseComponent := stdGensData.stdGens;
+	groupDataBaseComponent := stdGensData.groupData;
+	stdGensBase := List([1 .. m], i -> OnTuples(stdGensBaseComponent, t[i]));
+	slpFuncForK := WPR_SLPforAlmostSimple(groupDataBaseComponent);
 	#
 	# # # # # # # # # # #
 	# Correctness Check #
@@ -143,20 +146,19 @@ function(ri, G, SimpleGroupFamily...)
 	# # # # # #
 	# Step 10 #
 	# # # # # #
-	SLPforElementFunc := function(w)
-		return WPR_SLPforElement(w, riS, riH);
-	end;
-	gensC := WPR_Verification(ri, SimpleGroupFamily, riS, riH, imagesG, SLPforElementFunc);
-	if not IsList(gensC) then
-		return gensC;
-	fi;
+	stdGensTop := WPR_StandardGensTopGroup(ri, stdGensBase, imagesG, slpFuncForK, riH);
+	# TODO: exploit that top group is transitive and thus use only stdGensTop and stdGensBaseComponent, i.e. exploit slp stdGensTop -> gensH -> t
+	# isCorrect := WPR_Verification(ri, simpleGroupFamily, riS, riH, imagesG, SLPforElementFunc);
+	# if not isCorrect then
+	# 	return TemporaryFailure;
+	# fi;
 end);
 
 InstallGlobalFunction( WPR_SimpleSingleComponent,
-function(ri, SimpleGroupFamily, L, m, eps)
+function(ri, simpleGroupFamily, L, m, eps)
 	local S, A, P, logEps, l1, l2, delta, i;
 	A := ri!.gensHmem;
-	P := WPR_SimpleSingleComponentSuccessProb(SimpleGroupFamily);
+	P := WPR_SimpleSingleComponentSuccessProb(simpleGroupFamily);
 	if P = fail then
 		return NeverApplicable;
 	fi;
@@ -191,23 +193,23 @@ function(A, L, delta)
 end);
 
 InstallGlobalFunction( WPR_SimpleSingleComponentSuccessProb,
-function(SimpleGroupFamily)
-	if SimpleGroupFamily = "Alt" then
+function(simpleGroupFamily)
+	if simpleGroupFamily = "Alt" then
 		return [1/2, 1/3];
 	fi;
 	return fail;
 end);
 
 InstallGlobalFunction( WPR_StandardGensAlmostSimple,
-function(SimpleGroupFamily, lambda, lambdaSlpFunc, lambdaGens)
+function(simpleGroupFamily, lambda, slpFuncForT, lambdaGens)
 	local n, t, s;
-	if SimpleGroupFamily = "Alt" then
+	if simpleGroupFamily = "Alt" then
 		n := NrMovedPoints(Image(lambda));
-		t := ResultOfStraightLineProgram(lambdaSlpFunc((1,2,3)), lambdaGens);
+		t := ResultOfStraightLineProgram(slpFuncForT((1,2,3)), lambdaGens);
 		if IsEvenInt(n) then
-			s := ResultOfStraightLineProgram(lambdaSlpFunc((1,2)*CycleFromList([3 .. n])), lambdaGens);
+			s := ResultOfStraightLineProgram(slpFuncForT((1,2)*CycleFromList([3 .. n])), lambdaGens);
 		else
-			s := ResultOfStraightLineProgram(lambdaSlpFunc(CycleFromList([3 .. n])), lambdaGens);
+			s := ResultOfStraightLineProgram(slpFuncForT(CycleFromList([3 .. n])), lambdaGens);
 		fi;
 		return [t, s];
 	fi;
@@ -284,8 +286,8 @@ function(g, ri, domain)
 end);
 
 InstallGlobalFunction(WPR_Image,
-function(g, ri, SimpleGroupFamily, stdGensS, t, proj, lambda)
-	if SimpleGroupFamily = "Alt" then
+function(g, ri, simpleGroupFamily, stdGensS, t, proj, lambda)
+	if simpleGroupFamily = "Alt" then
 		# TODO: check if filter works faster
 		return WPR_ImageAltGeneric(g, ri, stdGensS, t, proj, lambda);
 	fi;
@@ -352,26 +354,32 @@ function(g, ri, stdGensS, t, proj, lambda)
 end);
 
 InstallGlobalFunction(WPR_SLPforElement,
-function(w, ri, riS)
-	return ErrorNoReturn("TODO");
+function(wList, slpFuncForK, riH)
+	ErrorNoReturn("TODO");
 end);
 
 InstallGlobalFunction(WPR_StandardGensSingleComponent,
-function(ri, eps, SimpleGroupFamily, lambda, stdGensS, lambdaSlpFunc, t, riH, imagesG, W)
-	if SimpleGroupFamily = "Alt" then
-		return WPR_StandardGensSingleComponentAlt(ri, eps, SimpleGroupFamily, lambda, stdGensS, lambdaSlpFunc, t, riH, imagesG, W);
+function(ri, eps, simpleGroupFamily, lambda, stdGensS, slpFuncForT, t, riH, imagesG, W)
+	if simpleGroupFamily = "Alt" then
+		return WPR_StandardGensSingleComponentAlt(ri, eps, simpleGroupFamily, lambda, stdGensS, slpFuncForT, t, riH, imagesG, W);
 	fi;
 	return ErrorNoReturn("TODO");
 end);
 
 InstallGlobalFunction(WPR_StandardGensSingleComponentAlt,
-function(ri, eps, SimpleGroupFamily, lambda, stdGensS, lambdaSlpFunc, t, riH, imagesG, W)
-	local Wmem, stdGensW, H, m, n, stdGensH, stdGensSW1, stdGensSW, wMem, wList, vMem, vList, pi, b, c, g, i, slpToPi, slpToG, repeats;
+function(ri, eps, simpleGroupFamily, lambda, stdGensS, slpFuncForT, t, riH, imagesG, W)
+	local Wmem, stdGensW, H, m, n, stdGensH, stdGensSW1, stdGensSW, wMem, wList, vMem, vList, pi, b, c, g, i, slpToPi, slpToG, repeats, stdGens, groupData;
+	H := Grp(riH);
+	m := NrMovedPoints(H);
+	n := NrMovedPoints(Image(lambda));
+	if ForAll(imagesG, g -> ForAll([1 .. m], i -> SignPerm(g[i]) = 1)) then
+		stdGens := stdGensS;
+		groupData := rec(family := "Alt", degree := n);
+		return rec(stdGens := stdGens, groupData := groupData);
+	fi;
 	Wmem := GroupWithMemory(List(imagesG, g -> WreathProductElementList(W, g)));
 	# elms with mem in W
 	stdGensW := GeneratorsOfGroup(Wmem);
-	H := Grp(riH);
-	m := NrMovedPoints(H);
 	# elms with mem in W > H
 	stdGensH := CalcNiceGens(riH, GeneratorsOfGroup(Wmem));
 	# elms with mem in W
@@ -393,17 +401,19 @@ function(ri, eps, SimpleGroupFamily, lambda, stdGensS, lambdaSlpFunc, t, riH, im
 		for i in Reversed([1 .. m]) do
 			g := wList[i];
 			if SignPerm(g) = 1 then
-				slpToG := lambdaSlpFunc(g);
+				slpToG := slpFuncForT(g);
 			else
-				slpToG := lambdaSlpFunc(g * (1,2));
+				slpToG := slpFuncForT(g * (1,2));
 			fi;
 			vMem := ResultOfStraightLineProgram(slpToG, stdGensSW[i]);
 			wMem := vMem ^ -1 * wMem;
-			if IsBound(b[i]) then
-				wMem := b[i] ^ -1 * wMem;
-			else
-				b[i] := wMem;
-				break;
+			if SignPerm(g) = -1 then
+				if IsBound(b[i]) then
+					wMem := b[i] ^ -1 * wMem;
+				else
+					b[i] := wMem;
+					break;
+				fi;
 			fi;
 			wList := ListWreathProductElement(W, StripMemory(wMem));
 		od;
@@ -413,16 +423,48 @@ function(ri, eps, SimpleGroupFamily, lambda, stdGensS, lambdaSlpFunc, t, riH, im
 	od;
 	if IsBound(b[1]) then
 		c := stdGensSW1[2] * stdGensSW1[1];
-		n := NrMovedPoints(Image(lambda));
 		if IsEvenInt(n) then
 			c := b[1] * c;
 		fi;
-		return List([b[1], c], x -> ResultOfStraightLineProgram(SLPOfElm(x), ri!.gensHmem));
+		stdGens := List([b[1], c], x -> ResultOfStraightLineProgram(SLPOfElm(x), ri!.gensHmem));
+		groupData := rec(family := "Sym", degree := n);
+		return rec(stdGens := stdGens, groupData := groupData);
 	fi;
 	return TemporaryFailure;
 end);
 
 InstallGlobalFunction(WPR_Verification,
-function(ri, SimpleGroupFamily, riS, riH, imagesG, SLPforElementFunc)
+function(ri, simpleGroupFamily, riS, riH, imagesG, SLPforElementFunc)
 	return ErrorNoReturn("TODO");
+end);
+
+InstallGlobalFunction(WPR_StandardGensTopGroup,
+function(ri, stdGensBase, imagesG, slpFuncForK, riH)
+	local H, m, l, k, baseElm, g, gList, gensH;
+	H := Grp(riH);
+	m := NrMovedPoints(H);
+	l := Length(imagesG);
+	gensH := EmptyPlist(l);
+	for k in [1 .. l] do
+		g := ri!.gensHmem[k];
+		gList := imagesG[k];
+		baseElm := Product([1 .. m], i -> ResultOfStraightLineProgram(slpFuncForK(gList[i]), stdGensBase[i]));
+		gensH[k] := baseElm ^ -1 * g;
+	od;
+	return CalcNiceGens(riH, gensH);
+end);
+
+InstallGlobalFunction(WPR_SLPforAlmostSimple,
+function(groupData)
+	if groupData.family = "Alt" then
+		return function(x)
+			return RECOG.SLPforAn(groupData.degree, x);
+		end;
+	elif groupData.family = "Sym" then
+		return function(x)
+			return RECOG.SLPforSn(groupData.degree, x);
+		end;
+	else
+		return ErrorNoReturn("TODO");
+	fi;
 end);
