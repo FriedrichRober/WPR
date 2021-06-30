@@ -125,14 +125,13 @@ function(ri, G, simpleGroupFamily...)
 	# # # # # #
 	# Step 8  #
 	# # # # # #
-	# TODO: remove trivial generators in a better way?
-	H := Group(Filtered(List(ri!.gensHmem, g -> proj(g)), pi -> pi <> ()));
+	# TODO: take care of trivial generators
+	H := Group(List(ri!.gensHmem, g -> proj(g)));
 	# TODO: give hints to recog node (H is transitive, etc.) and abort if assumptions do not hold.
 	riH := RecogniseGroup(H);
 	# # # # # #
 	# Step 9  #
 	# # # # # #
-	# TODO: this is slow, too many slp's for Wmem to handle.
 	stdGensData := WPR_StandardGensSingleComponent(ri, eps, simpleGroupFamily, lambda, stdGensS, slpFuncForT, t, riH, imagesG, W);
 	stdGensBaseComponent := stdGensData.stdGens;
 	groupDataBaseComponent := stdGensData.groupData;
@@ -368,7 +367,7 @@ end);
 
 InstallGlobalFunction(WPR_StandardGensSingleComponentAlt,
 function(ri, eps, simpleGroupFamily, lambda, stdGensS, slpFuncForT, t, riH, imagesG, W)
-	local Wmem, stdGensW, H, m, n, stdGensH, stdGensSW1, stdGensSW, wMem, wList, vMem, vList, pi, b, c, g, i, slpToPi, slpToG, repeats, stdGens, groupData;
+	local Wmem, stdGensW, H, m, n, stdGensH, stdGensSW1, stdGensSW, wMem, wList, vMem, vList, pi, b, c, g, i, slpToPi, slpToG, repeats, stdGens, groupData, stdGensT, gens;
 	H := Grp(riH);
 	m := NrMovedPoints(H);
 	n := NrMovedPoints(Image(lambda));
@@ -377,14 +376,20 @@ function(ri, eps, simpleGroupFamily, lambda, stdGensS, slpFuncForT, t, riH, imag
 		groupData := rec(family := "Alt", degree := n);
 		return rec(stdGens := stdGens, groupData := groupData);
 	fi;
-	Wmem := GroupWithMemory(List(imagesG, g -> WreathProductElementList(W, g)));
+	if IsEvenInt(n) then
+		stdGensT := [(1,2,3), (1,2)*CycleFromList([3 .. n])];
+	else
+		stdGensT := [(1,2,3), CycleFromList([3 .. n])];
+	fi;
+	stdGensW := List(imagesG, g -> WreathProductElementList(W, g));
+	stdGensSW := List([1 .. m], i -> List(stdGensT, g -> g ^ Embedding(W, i)));
+	stdGensH := CalcNiceGens(riH, stdGensW);
 	# elms with mem in W
-	stdGensW := GeneratorsOfGroup(Wmem);
-	# elms with mem in W > H
-	stdGensH := CalcNiceGens(riH, GeneratorsOfGroup(Wmem));
-	# elms with mem in W
-	stdGensSW1 := List(stdGensS, s -> ResultOfStraightLineProgram(SLPOfElm(s), stdGensW));
-	stdGensSW := List([1 .. m], i -> OnTuples(stdGensSW1, ResultOfStraightLineProgram(SLPOfElm(t[i]), stdGensW)));
+	gens := GeneratorsWithMemory(Concatenation(stdGensW, Concatenation(stdGensSW), stdGensH));
+	stdGensW := gens{[1 .. Length(stdGensW)]};
+	stdGensSW := List([1 .. m], i -> gens{[1 + Length(stdGensW) + Length(stdGensT) * (i - 1) .. Length(stdGensW) + Length(stdGensT) * i]});
+	stdGensH := gens{[1 + Length(stdGensW) + Length(stdGensT) * m .. Length(gens)]};
+	Wmem := Group(stdGensW);
 	b := EmptyPlist(m);
 	repeats := 0;
 	while repeats < m + Int(Ceil(Log2(Float(1/eps)))) do
@@ -422,11 +427,12 @@ function(ri, eps, simpleGroupFamily, lambda, stdGensS, slpFuncForT, t, riH, imag
 		fi;
 	od;
 	if IsBound(b[1]) then
-		c := stdGensSW1[2] * stdGensSW1[1];
+		c := stdGensSW[1,2] * stdGensSW[1,1];
 		if IsEvenInt(n) then
 			c := b[1] * c;
 		fi;
-		stdGens := List([b[1], c], x -> ResultOfStraightLineProgram(SLPOfElm(x), ri!.gensHmem));
+		gens := Concatenation(ri!.gensHmem, Concatenation(List([1 .. m], i -> OnTuples(stdGensS, t[i]))), CalcNiceGens(riH, ri!.gensHmem));
+		stdGens := List([b[1], c], x -> ResultOfStraightLineProgram(SLPOfElm(x), gens));
 		groupData := rec(family := "Sym", degree := n);
 		return rec(stdGens := stdGens, groupData := groupData);
 	fi;
