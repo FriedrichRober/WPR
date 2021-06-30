@@ -18,6 +18,8 @@
 #!   Insert documentation for your function here
 DeclareGlobalFunction( "WreathProductRecognition" );
 DeclareGlobalFunction( "WPR_SimpleSingleComponent" );
+DeclareGlobalFunction( "WPR_SimpleSingleComponentHintsFirstPhase" );
+DeclareGlobalFunction( "WPR_SimpleSingleComponentHintsSecondPhase" );
 DeclareGlobalFunction( "WPR_SimpleSingleComponentBaseStep" );
 DeclareGlobalFunction( "WPR_SimpleSingleComponentSuccessProb" );
 DeclareGlobalFunction( "WPR_StandardGensAlmostSimple" );
@@ -32,3 +34,5 @@ DeclareGlobalFunction( "WPR_StandardGensSingleComponentAlt" );
 DeclareGlobalFunction( "WPR_SLPforAlmostSimple" );
 DeclareGlobalFunction( "WPR_StandardGensTopGroup" );
 DeclareGlobalFunction( "WPR_Verification" );
+DeclareGlobalFunction( "WPR_RecogniseAlmostSimple" );
+DeclareGlobalFunction( "WPR_RecogniseAlt" );

@@ -6,8 +6,8 @@
 
 InstallGlobalFunction( WreathProductRecognition,
 function(ri, G, simpleGroupFamily...)
-	local N, L, m, eps, gensSingleComponent, S, riS, stdGensS, domainData, t, domain, proj, lambda, phi, imagesG, H, riH, SLPforElementFunc, gensC,
-		recogData, isoData, degree, lambdaImageFunc, slpFuncForT, lambdaPreImageFunc, swapSLP, slpToLambdaGens, lambdaGens, T, AutT, W,
+	local N, L, m, eps, origGensS, S, riS, stdGensS, domainData, t, domain, projFunc, lambda, phiImageFunc, imagesG, H, riH,
+		recogData, slpFuncForT, T, AutT, W, hintsForT, simpleCompData,
 		stdGensData, stdGensBaseComponent, groupDataBaseComponent, stdGensBase, slpFuncForK, stdGensTop;
 	if Length(simpleGroupFamily) = 0 then
 		# TODO: try to deduce simple group family or set this to unknown.
@@ -37,9 +37,11 @@ function(ri, G, simpleGroupFamily...)
 	# Step 1  #
 	# # # # # #
 	# TODO: if G is primitive, we could compute a single component group as a socle factor directly.
+	simpleCompData := WPR_SimpleSingleComponent(ri, simpleGroupFamily, L, m, eps);
 	# elms with memory in G
-	gensSingleComponent := WPR_SimpleSingleComponent(ri, simpleGroupFamily, L, m, eps);
-	if not IsList(gensSingleComponent) then
+	origGensS := simpleCompData.origGensS;
+	hintsForT := simpleCompData.hintsForT;
+	if not IsList(origGensS) then
 		return TemporaryFailure;
 	fi;
 	# # # # # #
@@ -47,42 +49,15 @@ function(ri, G, simpleGroupFamily...)
 	# # # # # #
 	# TODO: give hints to recog node (G is almost simple, etc.) and abort if assumptions do not hold.
 	# TODO: we need an isomorphism from S to T or maybe an embedding from S to the standard copy of Aut(T) > T.
-	S := Group(StripMemory(gensSingleComponent));
-	# riS := RecogniseGroup(S);
 	# TODO: we need very special nice generators.
+	S := Group(StripMemory(origGensS));
+	recogData := WPR_RecogniseAlmostSimple(S, simpleGroupFamily, hintsForT, eps);
+	T := recogData.T;
+	AutT := recogData.AutT;
+	slpFuncForT := recogData.slpFuncForT;
 	# elms with memory in G
-	# stdGensS := CalcNiceGens(riS, gensSingleComponent);
-	if simpleGroupFamily = "Alt" then
-		riS := EmptyRecognitionInfoRecord(rec(), S, false);
-		recogData := RECOG.RecogniseSnAn(riS, eps, N);
-		if not IsRecord(recogData) then
-			return TemporaryFailure;
-		fi;
-		if recogData.type <> "An" then
-			return ErrorNoReturn("TODO");
-		fi;
-		isoData := recogData.isoData;
-		degree := isoData[3];
-		lambdaImageFunc := function(g)
-			return RECOG.FindImageAn(riS, degree, g, isoData[1][1], isoData[1][2],
-				isoData[2][1], isoData[2][2]);
-		end;
-		# slp from (1,2,3), (1,2)(3,..n)
-		slpFuncForT := WPR_SLPforAlmostSimple(rec(family := "Alt", degree := degree));
-		lambdaPreImageFunc := function(x)
-			return ResultOfStraightLineProgram(slpFuncForT(x), Reversed(isoData[1]));
-		end;
-		swapSLP := StraightLineProgram([[[2, 1], [1, 1]]], 2);
-		slpToLambdaGens := CompositionOfStraightLinePrograms(swapSLP, recogData.slpToStdGens);
-		lambdaGens := ResultOfStraightLineProgram(slpToLambdaGens, gensSingleComponent);
-		T := AlternatingGroup(degree);
-		AutT := SymmetricGroup(degree);
-		lambda := GroupHomomorphismByFunction(S, T, lambdaImageFunc, lambdaPreImageFunc);
-	else
-		ErrorNoReturn("TODO");
-	fi;
-	# elms with memory in G
-	stdGensS := WPR_StandardGensAlmostSimple(simpleGroupFamily, lambda, slpFuncForT, lambdaGens);
+	stdGensS := recogData.stdGensS;
+	lambda := recogData.lambda;
 	#
 	# # # # # # # # # # # # # # # #
 	# Top Group Action and Domain #
@@ -98,7 +73,7 @@ function(ri, G, simpleGroupFamily...)
 	# # # # # #
 	# Step 4  #
 	# # # # # #
-	proj := function(g)
+	projFunc := function(g)
 		return WPR_TopComponentImage(StripMemory(g), ri, StripMemory(domain));
 	end;
 	# # # # # # # # # # # # # # # # #
@@ -113,10 +88,10 @@ function(ri, G, simpleGroupFamily...)
 	# Step 7  #
 	# # # # # #
 	W := WreathProduct(AutT, SymmetricGroup(m));
-	phi := function(g)
-		return WPR_Image(StripMemory(g), ri, simpleGroupFamily, StripMemory(stdGensS), StripMemory(t), proj, lambda);
+	phiImageFunc := function(g)
+		return WPR_Image(StripMemory(g), ri, simpleGroupFamily, StripMemory(stdGensS), StripMemory(t), projFunc, lambda);
 	end;
-	imagesG := List(ri!.gensHmem, g -> phi(g));
+	imagesG := List(ri!.gensHmem, g -> phiImageFunc(g));
 	#
 	# # # # # # # # # # #
 	# Image Computation #
@@ -126,7 +101,7 @@ function(ri, G, simpleGroupFamily...)
 	# Step 8  #
 	# # # # # #
 	# TODO: take care of trivial generators
-	H := Group(List(ri!.gensHmem, g -> proj(g)));
+	H := Group(List(ri!.gensHmem, g -> projFunc(g)));
 	# TODO: give hints to recog node (H is transitive, etc.) and abort if assumptions do not hold.
 	riH := RecogniseGroup(H);
 	# # # # # #
@@ -153,9 +128,50 @@ function(ri, G, simpleGroupFamily...)
 	# fi;
 end);
 
+InstallGlobalFunction( WPR_RecogniseAlmostSimple,
+function(S, simpleGroupFamily, hintsForT, eps)
+	if simpleGroupFamily = "Alt" then
+		return WPR_RecogniseAlt(S, simpleGroupFamily, hintsForT, eps);
+	else
+		ErrorNoReturn("TODO");
+	fi;
+end);
+
+InstallGlobalFunction( WPR_RecogniseAlt,
+function(S, simpleGroupFamily, hintsForT, eps)
+	local riS, N, recogData, isoData, degree, T, AutT, slpFuncForT, swapSLP, slpToStdGensS, stdGensS, lambdaImageFunc, lambdaPreImageFunc, lambda;
+	riS := EmptyRecognitionInfoRecord(rec(), S, false);
+	recogData := RECOG.RecogniseSnAn(riS, eps, hintsForT.upperDegreeBound);
+	if not IsRecord(recogData) then
+		return TemporaryFailure;
+	fi;
+	if recogData.type <> "An" then
+		return ErrorNoReturn("TODO");
+	fi;
+	isoData := recogData.isoData;
+	degree := isoData[3];
+	T := AlternatingGroup(degree);
+	AutT := SymmetricGroup(degree);
+	# slp from (1,2,3), (1,2)(3,..n)
+	slpFuncForT := WPR_SLPforAlmostSimple(rec(family := "Alt", degree := degree));
+	swapSLP := StraightLineProgram([[[2, 1], [1, 1]]], 2);
+	slpToStdGensS := CompositionOfStraightLinePrograms(swapSLP, recogData.slpToStdGens);
+	# elms with memory in G
+	stdGensS := ResultOfStraightLineProgram(slpToStdGensS, origGensS);
+	lambdaImageFunc := function(g)
+		return RECOG.FindImageAn(riS, degree, g, isoData[1][1], isoData[1][2],
+			isoData[2][1], isoData[2][2]);
+	end;
+	lambdaPreImageFunc := function(x)
+		return ResultOfStraightLineProgram(slpFuncForT(x), Reversed(isoData[1]));
+	end;
+	lambda := GroupHomomorphismByFunction(S, T, lambdaImageFunc, lambdaPreImageFunc);
+	return rec(T := T, AutT := AutT, slpFuncForT := slpFuncForT, stdGensS := stdGensS, lambda := lambda);
+end);
+
 InstallGlobalFunction( WPR_SimpleSingleComponent,
 function(ri, simpleGroupFamily, L, m, eps)
-	local S, A, P, logEps, l1, l2, delta, i;
+	local S, A, P, logEps, l1, l2, delta, i, hints, hintsForT;
 	A := ri!.gensHmem;
 	P := WPR_SimpleSingleComponentSuccessProb(simpleGroupFamily);
 	if P = fail then
@@ -163,14 +179,37 @@ function(ri, simpleGroupFamily, L, m, eps)
 	fi;
 	logEps := Log(Float(1 / eps));
 	l1 := Int(Ceil(logEps/Log(Float(1 / (1 - P[1])))));
-	# TODO: make bound m tighter after l1 steps.
+	# TODO: we make bound m tighter after l1 steps. Thus delta could be much smaller.
 	l2 := Int(Ceil(Maximum(Float(2 / P[2] * m), logEps * 8 / P[2])));
 	delta := eps / (l1 + l2);
-	# TODO: split into two for loops?
-	for i in [1 .. l1 + l2] do
+	# go down into base group
+	for i in [1 .. l1] do
 		A := WPR_SimpleSingleComponentBaseStep(A, L, delta);
 	od;
-	return A;
+	# TODO: better hints system
+	hints := WPR_SimpleSingleComponentHintsFirstPhase(simpleGroupFamily, A, L, m);
+	m := hints.m;
+	hintsForT := hints.hintsForT;
+	l2 := Int(Ceil(Maximum(Float(2 / P[2] * m), logEps * 8 / P[2])));
+	# go down into single component group
+	for i in [1 .. l2] do
+		A := WPR_SimpleSingleComponentBaseStep(A, L, delta);
+	od;
+	# TODO: adjust hints after getting to a single component group
+	# hintsForT := WPR_SimpleSingleComponentHintsSecondPhase(hintsForT, simpleGroupFamily, A, L, m);
+	return rec(origGensS := A, hintsForT := hintsForT);
+end);
+
+InstallGlobalFunction( WPR_SimpleSingleComponentHintsFirstPhase,
+function(simpleGroupFamily, A, L, m)
+	local hintsForT;
+	if simpleGroupFamily = "Alt" then
+		# TODO: compute some orders of random elms
+		hintsForT := rec(upperDegreeBound := L);
+		return rec(m := m, hintsForT := hintsForT);
+	else
+		ErrorNoReturn("TODO");
+	fi;
 end);
 
 InstallGlobalFunction( WPR_SimpleSingleComponentBaseStep,
@@ -200,15 +239,15 @@ function(simpleGroupFamily)
 end);
 
 InstallGlobalFunction( WPR_StandardGensAlmostSimple,
-function(simpleGroupFamily, lambda, slpFuncForT, lambdaGens)
+function(simpleGroupFamily, lambda, slpFuncForT, stdGensS)
 	local n, t, s;
 	if simpleGroupFamily = "Alt" then
 		n := NrMovedPoints(Image(lambda));
-		t := ResultOfStraightLineProgram(slpFuncForT((1,2,3)), lambdaGens);
+		t := ResultOfStraightLineProgram(slpFuncForT((1,2,3)), stdGensS);
 		if IsEvenInt(n) then
-			s := ResultOfStraightLineProgram(slpFuncForT((1,2)*CycleFromList([3 .. n])), lambdaGens);
+			s := ResultOfStraightLineProgram(slpFuncForT((1,2)*CycleFromList([3 .. n])), stdGensS);
 		else
-			s := ResultOfStraightLineProgram(slpFuncForT(CycleFromList([3 .. n])), lambdaGens);
+			s := ResultOfStraightLineProgram(slpFuncForT(CycleFromList([3 .. n])), stdGensS);
 		fi;
 		return [t, s];
 	fi;
@@ -285,20 +324,20 @@ function(g, ri, domain)
 end);
 
 InstallGlobalFunction(WPR_Image,
-function(g, ri, simpleGroupFamily, stdGensS, t, proj, lambda)
+function(g, ri, simpleGroupFamily, stdGensS, t, projFunc, lambda)
 	if simpleGroupFamily = "Alt" then
 		# TODO: check if filter works faster
-		return WPR_ImageAltGeneric(g, ri, stdGensS, t, proj, lambda);
+		return WPR_ImageAltGeneric(g, ri, stdGensS, t, projFunc, lambda);
 	fi;
 	return ErrorNoReturn("TODO");
 end);
 
 InstallGlobalFunction(WPR_ImageAltGeneric,
-function(g, ri, stdGensS, t, proj, lambda)
+function(g, ri, stdGensS, t, projFunc, lambda)
 	local n, m, top, base, i, j, k, a, b, aCycles, bCycles, aPoints, bPoints, abPoints, 3Point, 3PosInA, 3PosInB, images;
 	n := NrMovedPoints(Image(lambda));
 	m := Length(t);
-	top := proj(g);
+	top := projFunc(g);
 	if top = fail then
 		return TemporaryFailure;
 	fi;
@@ -348,7 +387,7 @@ function(g, ri, stdGensS, t, proj, lambda)
 end);
 
 InstallGlobalFunction(WPR_ImageAltFilter,
-function(g, ri, stdGensS, t, proj, lambda)
+function(g, ri, stdGensS, t, projFunc, lambda)
 	return ErrorNoReturn("TODO");
 end);
 
