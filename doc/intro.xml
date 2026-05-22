@@ -15,7 +15,7 @@ The package &WPrecog;
 </Alt>
 provides recognition methods for groups abstractly isomorphic to certain (subgroups of) wreath products. <P/>
 
-Assume we are given as input a black box group <M>G</M> which is isomorphic to a (subgroup of) wreath product. In certain cases, we can compute a wreath product decomposition of the input group, that is an embedding from the group into a natural wreath product where elements are encoded component-wise. For example, <M>G</M> can be a matrix group of Aschbacher class C2 or a primitive group of type PA. The main command is provided via <C>WreathProductDecomposition</C>. <P/>
+Assume we are given as input a black box group <M>G</M> which is isomorphic to a (subgroup of) wreath product. In certain cases, we can compute a wreath product decomposition of the input group, that is an embedding from the group into a natural wreath product where elements are encoded component-wise. For example, <M>G</M> can be a matrix group of Aschbacher class C2 or a primitive group in product action (O'Nan-Scott type PA). The main command is provided via <C>WreathProductDecomposition</C>. <P/>
 
 For instance, the computation of a wreath product decomposition of <M>\textrm{PSL}(3,3) \wr E(4)</M> represented as a primitive group of type PA acting on <M>13^4 = 28\,561</M> points takes less than half a second. This yields an effective mapping into an imprimitive wreath product acting on <M>13 \cdot 4 = 52</M> points.
 </Section>

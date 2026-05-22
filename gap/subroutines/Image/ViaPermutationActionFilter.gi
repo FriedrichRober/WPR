@@ -109,6 +109,9 @@ end);
 
 # filter lives in the group induced by S on points [1 .. NrMovedPoints(S)].
 # to translate into S use data.translationS^(-1)
+# TODO: filter could be create more dynamically,
+#       by checking whether more permutations are required instead
+#       of starting with some fixed filter length
 BindGlobal("SetupImageFilter", function(ri, data, userOptions)
     local _, options, name, gensS, orbS, sigma, riP, n, filter, riF,
           coveredPoints, filterOrbs, filterTransversals, p, orbitData, i;

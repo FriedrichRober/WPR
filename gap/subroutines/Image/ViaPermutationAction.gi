@@ -80,6 +80,8 @@ BindGlobal("ImageViaPermutationAction", function(g, ri, data, options)
     # hence like the image under phi that we want to define.
     for i in [1 .. m] do
         j := i^pi;
+        # TODO: since we restrict the permutation to orb, the conjugation could be computed more efficiently
+        # TODO: store the inverse of the transversal for this, and of g
         filterConj := List(filterS, f -> RestrictedPerm(f^(t[i] * g * t[j]^(-1)), orb)^sigma);
         wi := WPE_ElementFromConjugationOnImageFilter(filter, filterConj, ri, data, options);
         if wi = fail then
